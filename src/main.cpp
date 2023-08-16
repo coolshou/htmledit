@@ -48,7 +48,8 @@
 **
 ****************************************************************************/
 
-#include "textedit.h"
+// #include "textedit.h"
+#include "mainwindow.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -60,8 +61,8 @@ int main(int argc, char *argv[])
     Q_INIT_RESOURCE(htmledit);
 
     QApplication a(argc, argv);
-    QCoreApplication::setOrganizationName("QtProject");
-    QCoreApplication::setApplicationName("Rich Text");
+    QCoreApplication::setOrganizationName("coolshou.idv.tw");
+    QCoreApplication::setApplicationName("htmledit");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::applicationName());
@@ -70,16 +71,18 @@ int main(int argc, char *argv[])
     parser.addPositionalArgument("file", "The file to open.");
     parser.process(a);
 
-    TextEdit mw;
+    // TextEdit mw;
 
-    const QRect availableGeometry = mw.screen()->availableGeometry();
-    mw.resize(availableGeometry.width() / 2, (availableGeometry.height() * 2) / 3);
-    mw.move((availableGeometry.width() - mw.width()) / 2,
-            (availableGeometry.height() - mw.height()) / 2);
+    // const QRect availableGeometry = mw.screen()->availableGeometry();
+    // mw.resize(availableGeometry.width() / 2, (availableGeometry.height() * 2) / 3);
+    // mw.move((availableGeometry.width() - mw.width()) / 2,
+    //         (availableGeometry.height() - mw.height()) / 2);
 
-    if (!mw.load(parser.positionalArguments().value(0, QLatin1String(":/example.html"))))
-        mw.fileNew();
+    // if (!mw.load(parser.positionalArguments().value(0, QLatin1String(":/example.html"))))
+    //     mw.fileNew();
 
-    mw.show();
+    // mw.show();
+    MainWindow w;
+    w.show();
     return a.exec();
 }
