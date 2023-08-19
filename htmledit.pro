@@ -9,14 +9,12 @@ TEMPLATE        = app
 TARGET          = htmledit
 
 HEADERS         = \
-    src/htmlsubwin.h \
     src/textedit.h \
     src/htmledit.h \
     src/mainwindow.h \
     src/version.h
 
 SOURCES         = \
-    src/htmlsubwin.cpp \
     src/textedit.cpp \
     src/htmledit.cpp \
     src/main.cpp \

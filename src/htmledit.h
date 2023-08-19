@@ -51,6 +51,8 @@
 #ifndef HTMLEDIT_H
 #define HTMLEDIT_H
 
+#include <QApplication>
+#include <QMdiSubWindow>
 #include <QWidget>
 //#include <QMainWindow>
 #include <QMap>
@@ -66,21 +68,39 @@ class QMenu;
 class QPrinter;
 QT_END_NAMESPACE
 
-class HtmlEdit : public QWidget
+//class HtmlEdit : public QWidget
+class HtmlEdit : public QMdiSubWindow
 {
     Q_OBJECT
 
 public:
-    HtmlEdit(QWidget *parent = 0);
+    HtmlEdit(QWidget *parent = nullptr);
 
     bool load(const QString &f);
 
 public slots:
     void fileNew();
+    void textStyle(int styleIndex);
+    void textFamily(const QString &f);
+    void textSize(const QString &p);
+    void textBold(int weight);
+    void textUnderline(bool underline);
+    void textItalic(bool italic);
+    void textAlign(QAction *a);
 
 Q_SIGNALS:
     void fontStyle(int idx);
+    void fontFamily(const QString &f);
+    void fontSize(const QString &p);
+    void fontChanged(const QFont &f);
+    void colorChanged(const QColor &c);
+    void alignmentChanged(Qt::Alignment a);
+
     void CheckState(bool checked);
+    void CutState(bool enabled);
+    void CopyState(bool enabled);
+    void PasteState(bool enabled);
+    void statusMesage(const QString &t);
 
 protected:
     //void closeEvent(QCloseEvent *e) override;
@@ -92,15 +112,10 @@ private slots:
     void filePrint();
     void filePrintPreview();
     void filePrintPdf();
+    void CutCopyState(bool enabled);
 
-    //void textBold();
-    //void textUnderline();
-    //void textItalic();
-    void textFamily(const QString &f);
-    void textSize(const QString &p);
-    void textStyle(int styleIndex);
     void textColor();
-    //void textAlign(QAction *a);
+
     void setChecked(bool checked);
     void indent();
     void unindent();
@@ -108,8 +123,7 @@ private slots:
     void currentCharFormatChanged(const QTextCharFormat &format);
     void cursorPositionChanged();
 
-    //void clipboardDataChanged();
-    //void about();
+    void clipboardDataChanged();
     void printPreview(QPrinter *);
 
 private:
@@ -121,9 +135,7 @@ private:
     void modifyIndentation(int amount);
 
     void mergeFormatOnWordOrSelection(const QTextCharFormat &format);
-    void fontChanged(const QFont &f);
-    void colorChanged(const QColor &c);
-    void alignmentChanged(Qt::Alignment a);
+
 
     /*QAction *actionSave;
     QAction *actionTextBold;
@@ -145,9 +157,6 @@ private:
     QAction *actionPaste;
 #endif
 */
-    QComboBox *comboStyle;
-    QFontComboBox *comboFont;
-    QComboBox *comboSize;
 
     //QToolBar *tb;
     QString fileName;

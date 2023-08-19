@@ -54,8 +54,8 @@
 //#include <QApplication>
 #include <QClipboard>
 #include <QColorDialog>
-#include <QComboBox>
-#include <QFontComboBox>
+
+
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -97,40 +97,36 @@ const QString rsrcPath = ":/images/win";
 #endif
 
 HtmlEdit::HtmlEdit(QWidget *parent)
-    : QWidget(parent)
+    //: QWidget(parent)
+:QMdiSubWindow(parent)
 {
-//#ifdef Q_OS_MACOS
-//    setUnifiedTitleAndToolBarOnMac(true);
-//#endif
+#ifdef Q_OS_MACOS
+    setUnifiedTitleAndToolBarOnMac(true);
+#endif
     //setWindowTitle(QCoreApplication::applicationName());
-    QHBoxLayout *layout = new QHBoxLayout(this);
-    layout->setMargin(0);
+
+    setAttribute(Qt::WA_DeleteOnClose);
 
     textEdit = new QTextEdit(this);
     connect(textEdit, &QTextEdit::currentCharFormatChanged,
             this, &HtmlEdit::currentCharFormatChanged);
     connect(textEdit, &QTextEdit::cursorPositionChanged,
             this, &HtmlEdit::cursorPositionChanged);
-    //setCentralWidget(textEdit);
-    layout->addWidget(textEdit);
+    setWidget(textEdit);
 
     //setToolButtonStyle(Qt::ToolButtonFollowStyle);
     //setupFileActions();
     //setupEditActions();
     //setupTextActions();
-/*
-    {QAction
-        QMenu *helpMenu = menuBar()->addMenu(tr("Help"));
-        helpMenu->addAction(tr("About"), this, &HtmlEdit::about);
-        helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
-    }
-*/
+
     QFont textFont("Helvetica");
     textFont.setStyleHint(QFont::SansSerif);
     textEdit->setFont(textFont);
-//    fontChanged(textEdit->font());
-//    colorChanged(textEdit->textColor());
-//    alignmentChanged(textEdit->alignment());
+    /*
+    emit fontChanged(textEdit->font());
+    emit colorChanged(textEdit->textColor());
+    emit alignmentChanged(textEdit->alignment());
+    */
 /*
     connect(textEdit->document(), &QTextDocument::modificationChanged,
             actionSave, &QAction::setEnabled);
@@ -145,16 +141,12 @@ HtmlEdit::HtmlEdit(QWidget *parent)
     actionSave->setEnabled(textEdit->document()->isModified());
     actionUndo->setEnabled(textEdit->document()->isUndoAvailable());
     actionRedo->setEnabled(textEdit->document()->isRedoAvailable());
-
+*/
 #ifndef QT_NO_CLIPBOARD
-    actionCut->setEnabled(false);
-    connect(textEdit, &QTextEdit::copyAvailable, actionCut, &QAction::setEnabled);
-    actionCopy->setEnabled(false);
-    connect(textEdit, &QTextEdit::copyAvailable, actionCopy, &QAction::setEnabled);
-
+    connect(textEdit, &QTextEdit::copyAvailable, this, &HtmlEdit::CutCopyState);
     connect(QApplication::clipboard(), &QClipboard::dataChanged, this, &HtmlEdit::clipboardDataChanged);
 #endif
-*/
+
     textEdit->setFocus();
     setCurrentFileName(QString());
 
@@ -442,14 +434,14 @@ bool HtmlEdit::load(const QString &f)
     setCurrentFileName(f);
     return true;
 }
-/*
+
 bool HtmlEdit::maybeSave()
 {
     if (!textEdit->document()->isModified())
         return true;
 
     const QMessageBox::StandardButton ret =
-        QMessageBox::warning(this, QCoreApplication::applicationName(),
+        QMessageBox::warning(this, this->windowTitle(),
                              tr("The document has been modified.\n"
                                 "Do you want to save your changes?"),
                              QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
@@ -459,7 +451,7 @@ bool HtmlEdit::maybeSave()
         return false;
     return true;
 }
-*/
+
 void HtmlEdit::setCurrentFileName(const QString &fileName)
 {
     this->fileName = fileName;
@@ -477,10 +469,10 @@ void HtmlEdit::setCurrentFileName(const QString &fileName)
 
 void HtmlEdit::fileNew()
 {
-    //if (maybeSave()) {
+    if (maybeSave()) {
         textEdit->clear();
         setCurrentFileName(QString());
-    //}
+    }
 }
 
 void HtmlEdit::fileOpen()
@@ -595,38 +587,44 @@ void HtmlEdit::filePrintPdf()
     fileDialog.setDefaultSuffix("pdf");
     if (fileDialog.exec() != QDialog::Accepted)
         return;
-    QString fileName = fileDialog.selectedFiles().first();
+//    QString fileName = fileDialog.selectedFiles().first();
+    QString fileName = fileDialog.selectedFiles().constFirst();
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(fileName);
     textEdit->document()->print(&printer);
-    //statusBar()->showMessage(tr("Exported \"%1\"")
-    //                         .arg(QDir::toNativeSeparators(fileName)));
+    emit statusMesage(tr("Exported \"%1\"").arg(QDir::toNativeSeparators(fileName)));
 //! [0]
 #endif
 }
-/*
-void HtmlEdit::textBold()
+
+void HtmlEdit::CutCopyState(bool enabled)
+{
+    emit CutState(enabled);
+    emit CopyState(enabled);
+}
+
+void HtmlEdit::textBold(int weight)
 {
     QTextCharFormat fmt;
-    fmt.setFontWeight(actionTextBold->isChecked() ? QFont::Bold : QFont::Normal);
+    fmt.setFontWeight(weight);
     mergeFormatOnWordOrSelection(fmt);
 }
 
-void HtmlEdit::textUnderline()
+void HtmlEdit::textUnderline(bool underline)
 {
     QTextCharFormat fmt;
-    fmt.setFontUnderline(actionTextUnderline->isChecked());
+    fmt.setFontUnderline(underline);
     mergeFormatOnWordOrSelection(fmt);
 }
 
-void HtmlEdit::textItalic()
+void HtmlEdit::textItalic(bool italic)
 {
     QTextCharFormat fmt;
-    fmt.setFontItalic(actionTextItalic->isChecked());
+    fmt.setFontItalic(italic);
     mergeFormatOnWordOrSelection(fmt);
 }
-*/
+
 void HtmlEdit::textFamily(const QString &f)
 {
     QTextCharFormat fmt;
@@ -737,21 +735,21 @@ void HtmlEdit::textColor()
     QTextCharFormat fmt;
     fmt.setForeground(col);
     mergeFormatOnWordOrSelection(fmt);
-    //colorChanged(col);
+    emit colorChanged(col);
 }
-/*
+
 void HtmlEdit::textAlign(QAction *a)
 {
-    if (a == actionAlignLeft)
+    if (a->text() == "Left")
         textEdit->setAlignment(Qt::AlignLeft | Qt::AlignAbsolute);
-    else if (a == actionAlignCenter)
+    else if (a->text() == "Center")
         textEdit->setAlignment(Qt::AlignHCenter);
-    else if (a == actionAlignRight)
+    else if (a->text() == "Right")
         textEdit->setAlignment(Qt::AlignRight | Qt::AlignAbsolute);
-    else if (a == actionAlignJustify)
+    else if (a->text() == "Justify")
         textEdit->setAlignment(Qt::AlignJustify);
 }
-*/
+
 void HtmlEdit::setChecked(bool checked)
 {
     textStyle(checked ? 5 : 4);
@@ -793,90 +791,73 @@ void HtmlEdit::modifyIndentation(int amount)
 
 void HtmlEdit::currentCharFormatChanged(const QTextCharFormat &format)
 {
-    //fontChanged(format.font());
-    //colorChanged(format.foreground().color());
+    emit fontChanged(format.font());
+    emit colorChanged(format.foreground().color());
 }
 
 void HtmlEdit::cursorPositionChanged()
 {
-    //alignmentChanged(textEdit->alignment());
+    emit alignmentChanged(textEdit->alignment());
     QTextList *list = textEdit->textCursor().currentList();
     if (list) {
         switch (list->format().style()) {
         case QTextListFormat::ListDisc:
             emit fontStyle(1);
-//            comboStyle->setCurrentIndex(1);
             break;
         case QTextListFormat::ListCircle:
             emit fontStyle(2);
-//            comboStyle->setCurrentIndex(2);
             break;
         case QTextListFormat::ListSquare:
             emit fontStyle(3);
-//            comboStyle->setCurrentIndex(3);
             break;
         case QTextListFormat::ListDecimal:
             emit fontStyle(6);
-//            comboStyle->setCurrentIndex(6);
             break;
         case QTextListFormat::ListLowerAlpha:
             emit fontStyle(7);
-//            comboStyle->setCurrentIndex(7);
             break;
         case QTextListFormat::ListUpperAlpha:
             emit fontStyle(8);
-//            comboStyle->setCurrentIndex(8);
             break;
         case QTextListFormat::ListLowerRoman:
             emit fontStyle(9);
-//            comboStyle->setCurrentIndex(9);
             break;
         case QTextListFormat::ListUpperRoman:
             emit fontStyle(10);
-//            comboStyle->setCurrentIndex(10);
             break;
         default:
             emit fontStyle(-1);
-//            comboStyle->setCurrentIndex(-1);
             break;
         }
         switch (textEdit->textCursor().block().blockFormat().marker()) {
         case QTextBlockFormat::MarkerType::NoMarker:
-//            actionToggleCheckState->setChecked(false);
             emit CheckState(false);
             break;
         case QTextBlockFormat::MarkerType::Unchecked:
-            comboStyle->setCurrentIndex(4);
-//            actionToggleCheckState->setChecked(false);
+            emit fontStyle(4);
             emit CheckState(false);
             break;
         case QTextBlockFormat::MarkerType::Checked:
-            comboStyle->setCurrentIndex(5);
-//            actionToggleCheckState->setChecked(true);
+            emit fontStyle(5);
             emit CheckState(true);
             break;
         }
     } else {
         int headingLevel = textEdit->textCursor().blockFormat().headingLevel();
-        comboStyle->setCurrentIndex(headingLevel ? headingLevel + 10 : 0);
+        emit fontStyle(headingLevel ? headingLevel + 10 : 0);
+//        comboStyle->setCurrentIndex(headingLevel ? headingLevel + 10 : 0);
     }
 }
-/*
+
 void HtmlEdit::clipboardDataChanged()
 {
 #ifndef QT_NO_CLIPBOARD
     if (const QMimeData *md = QApplication::clipboard()->mimeData())
-        actionPaste->setEnabled(md->hasText());
+        emit PasteState(md->hasText());
 #endif
 }
 
-void HtmlEdit::about()
-{
-    QMessageBox::about(this, tr("About"), tr("This example demonstrates Qt's "
-        "rich text editing facilities in action, providing an example "
-        "document for you to experiment with."));
-}
-*/
+
 void HtmlEdit::mergeFormatOnWordOrSelection(const QTextCharFormat &format)
 {
     QTextCursor cursor = textEdit->textCursor();
@@ -885,32 +866,3 @@ void HtmlEdit::mergeFormatOnWordOrSelection(const QTextCharFormat &format)
     cursor.mergeCharFormat(format);
     textEdit->mergeCurrentCharFormat(format);
 }
-/*
-void HtmlEdit::fontChanged(const QFont &f)
-{
-    comboFont->setCurrentIndex(comboFont->findText(QFontInfo(f).family()));
-    comboSize->setCurrentIndex(comboSize->findText(QString::number(f.pointSize())));
-    actionTextBold->setChecked(f.bold());
-    actionTextItalic->setChecked(f.italic());
-    actionTextUnderline->setChecked(f.underline());
-}
-
-void HtmlEdit::colorChanged(const QColor &c)
-{
-    QPixmap pix(16, 16);
-    pix.fill(c);
-    actionTextColor->setIcon(pix);
-}
-
-void HtmlEdit::alignmentChanged(Qt::Alignment a)
-{
-    if (a & Qt::AlignLeft)
-        actionAlignLeft->setChecked(true);
-    else if (a & Qt::AlignHCenter)
-        actionAlignCenter->setChecked(true);
-    else if (a & Qt::AlignRight)
-        actionAlignRight->setChecked(true);
-    else if (a & Qt::AlignJustify)
-        actionAlignJustify->setChecked(true);
-}
-*/
